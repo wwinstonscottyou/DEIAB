@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NASW-IL DEIAB Committee — Operating System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15202B;
+    --paper:#F6F7F9;
+    --surface:#FFFFFF;
+    --muted:#5C6773;
+    --faint:#8A94A0;
+    --line:#E2E6EC;
+    --line-strong:#CBD3DC;
+
+    --teal:#1F6A6E;          /* brand / primary */
+    --teal-deep:#164E51;
+    --teal-soft:#E7F1F1;
+    --plum:#6A3D6B;          /* people / belonging accent */
+    --plum-soft:#F1E9F1;
+
+    /* status = the only place color carries meaning */
+    --ok:#2E7D5B;     --ok-soft:#E6F2EC;
+    --warn:#A86412;   --warn-soft:#FBF0DD;
+    --risk:#BE3B2A;   --risk-soft:#FBE7E3;
+    --info:#36608F;   --info-soft:#E7EFF7;
+    --slate:#5C6773;  --slate-soft:#EDEFF2;
+
+    --radius:10px;
+    --radius-sm:7px;
+    --shadow:0 1px 2px rgba(21,32,43,.04), 0 8px 24px rgba(21,32,43,.05);
+    --display:"Spectral", Georgia, "Times New Roman", serif;
+    --ui:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono:ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--ui);
+    color:var(--ink);
+    background:var(--paper);
+    font-size:15px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--teal);}
+
+  /* ---------- Layout ---------- */
+  .app{display:grid; grid-template-columns:264px 1fr; min-height:100vh;}
+  .sidebar{
+    background:var(--ink);
+    color:#D7DEE6;
+    padding:22px 16px 40px;
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+  }
+  .brand{display:flex; gap:11px; align-items:flex-start; padding:0 6px 18px; border-bottom:1px solid rgba(255,255,255,.09); margin-bottom:14px;}
+  .brand .mark{
+    width:34px;height:34px;border-radius:8px;flex:0 0 34px;
+    background:linear-gradient(150deg,var(--teal),var(--plum));
+    display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:17px;
+  }
+  .brand h1{font-family:var(--ui);font-size:13.5px;font-weight:600;margin:1px 0 2px;color:#fff;letter-spacing:.01em;line-height:1.3;}
+  .brand p{margin:0;font-size:11px;color:#94A0AD;line-height:1.35;}
+
+  .navgroup{margin:14px 0 4px;}
+  .navgroup-label{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:#6E7C8A;padding:0 8px 5px;font-weight:600;}
+  .navitem{
+    display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+    background:none;border:none;color:#C4CDD7;font-family:var(--ui);font-size:13.5px;
+    padding:7px 9px;border-radius:7px;cursor:pointer;line-height:1.25;
+  }
+  .navitem:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .navitem.active{background:var(--teal);color:#fff;font-weight:500;}
+  .navitem .dot{width:6px;height:6px;border-radius:50%;flex:0 0 6px;background:currentColor;opacity:.55;}
+  .navitem .badge{margin-left:auto;background:var(--risk);color:#fff;font-size:10.5px;font-weight:600;border-radius:9px;padding:1px 7px;min-width:18px;text-align:center;}
+  .navitem .badge.warn{background:var(--warn);}
+  .navitem .badge.muted{background:rgba(255,255,255,.16);color:#cfd7df;}
+
+  .main{min-width:0;display:flex;flex-direction:column;}
+  .topbar{
+    position:sticky;top:0;z-index:20;
+    background:rgba(246,247,249,.86);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+    padding:13px 30px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  }
+  .topbar .crumb{font-size:12.5px;color:var(--muted);}
+  .topbar .crumb b{color:var(--ink);font-weight:600;}
+  .topbar .spacer{flex:1;}
+  .savestate{font-size:11.5px;color:var(--faint);display:flex;align-items:center;gap:6px;}
+  .savestate .pip{width:7px;height:7px;border-radius:50%;background:var(--ok);}
+  .savestate.unsaved .pip{background:var(--warn);}
+
+  .btn{
+    font-family:var(--ui);font-size:12.5px;font-weight:500;cursor:pointer;
+    border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);
+    padding:6px 12px;border-radius:7px;line-height:1.2;
+  }
+  .btn:hover{border-color:var(--teal);color:var(--teal-deep);}
+  .btn.primary{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .btn.primary:hover{background:var(--teal-deep);color:#fff;}
+  .btn.ghost{border-color:transparent;background:transparent;color:var(--muted);}
+  .btn.ghost:hover{background:var(--slate-soft);color:var(--ink);}
+  .btn.sm{font-size:11.5px;padding:4px 9px;}
+  .btn.danger:hover{border-color:var(--risk);color:var(--risk);}
+
+  .content{padding:26px 30px 80px;max-width:1080px;width:100%;}
+  .view{display:none;}
+  .view.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+  /* ---------- Typography ---------- */
+  .page-eyebrow{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--teal);font-weight:600;margin:0 0 5px;}
+  .page-title{font-family:var(--display);font-weight:600;font-size:30px;line-height:1.12;margin:0 0 6px;letter-spacing:-.01em;}
+  .page-lede{color:var(--muted);font-size:14.5px;margin:0 0 22px;max-width:70ch;}
+  h2.sec{font-family:var(--display);font-size:20px;font-weight:600;margin:30px 0 10px;letter-spacing:-.01em;}
+  h3.sub{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:20px 0 8px;}
+
+  /* ---------- Cards ---------- */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px;}
+  .card-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;}
+  .card-head h3{font-family:var(--display);font-size:17px;font-weight:600;margin:0;}
+  .card-head .meta{margin-left:auto;font-size:11.5px;color:var(--faint);}
+
+  .grid{display:grid;gap:14px;}
+  .grid-2{grid-template-columns:repeat(2,1fr);}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+
+  /* ---------- Dashboard tiles ---------- */
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+  .tile .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:6px;}
+  .tile .v{font-family:var(--display);font-size:30px;font-weight:600;line-height:1;}
+  .tile .v small{font-size:13px;color:var(--muted);font-family:var(--ui);font-weight:500;}
+  .tile .sub{font-size:12px;color:var(--muted);margin-top:5px;}
+  .tile .rail{position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--slate);}
+  .tile.attn .rail{background:var(--risk);} .tile.attn .v{color:var(--risk);}
+  .tile.warn .rail{background:var(--warn);}
+  .tile.ok .rail{background:var(--ok);}
+  .tile.info .rail{background:var(--info);}
+  .tile.teal .rail{background:var(--teal);}
+
+  .listcard ul{list-style:none;margin:0;padding:0;}
+  .listcard li{display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px;}
+  .listcard li:first-child{border-top:none;}
+  .listcard li .lead{font-weight:500;}
+  .listcard li .tail{margin-left:auto;font-size:11.5px;color:var(--faint);white-space:nowrap;padding-left:8px;}
+  .empty{color:var(--faint);font-size:13px;font-style:italic;padding:6px 0;}
+
+  /* ---------- Pills ---------- */
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;line-height:1.5;white-space:nowrap;}
+  .pill.ok{background:var(--ok-soft);color:var(--ok);}
+  .pill.warn{background:var(--warn-soft);color:var(--warn);}
+  .pill.risk{background:var(--risk-soft);color:var(--risk);}
+  .pill.info{background:var(--info-soft);color:var(--info);}
+  .pill.slate{background:var(--slate-soft);color:var(--slate);}
+  .pill.teal{background:var(--teal-soft);color:var(--teal-deep);}
+  .pill.plum{background:var(--plum-soft);color:var(--plum);}
+
+  /* ---------- Editable fields ---------- */
+  [contenteditable]{outline:none;border-radius:6px;transition:background .12s;}
+  [contenteditable]:hover{background:var(--paper);}
+  [contenteditable]:focus{background:#fff;box-shadow:0 0 0 2px var(--teal-soft);}
+  .editable-block{padding:7px 9px;margin:0 -9px;border-radius:7px;}
+  .field-label{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:14px 0 3px;}
+  .field-label:first-child{margin-top:0;}
+  .prose{font-size:14.5px;line-height:1.6;}
+  .prose.serif{font-family:var(--display);font-size:16px;}
+
+  /* editable lists */
+  .ed-list{list-style:none;margin:6px 0 0;padding:0;}
+  .ed-list li{display:flex;gap:8px;align-items:flex-start;padding:3px 0;}
+  .ed-list li .bullet{color:var(--teal);font-weight:700;flex:0 0 auto;padding-top:2px;}
+  .ed-list li .txt{flex:1;padding:3px 7px;margin-left:-7px;border-radius:6px;}
+  .ed-list li .x{opacity:0;border:none;background:none;color:var(--faint);cursor:pointer;font-size:14px;padding:2px 5px;}
+  .ed-list li:hover .x{opacity:1;}
+  .ed-list li .x:hover{color:var(--risk);}
+  .add-line{font-size:12.5px;color:var(--teal);background:none;border:none;cursor:pointer;padding:6px 0 0;font-weight:500;}
+  .add-line:hover{text-decoration:underline;}
+
+  /* ---------- Tables ---------- */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);}
+  table.dt{border-collapse:collapse;width:100%;font-size:13px;min-width:640px;}
+  table.dt thead th{
+    text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;
+    padding:10px 11px;border-bottom:1px solid var(--line-strong);background:var(--paper);position:sticky;top:0;white-space:nowrap;
+  }
+  table.dt tbody td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  table.dt tbody tr:last-child td{border-bottom:none;}
+  table.dt tbody tr:hover{background:#FCFCFD;}
+  .cell-input{width:100%;border:none;background:transparent;font-family:var(--ui);font-size:13px;color:var(--ink);padding:4px 5px;border-radius:5px;resize:vertical;line-height:1.4;}
+  .cell-input:hover{background:var(--paper);}
+  .cell-input:focus{outline:none;background:#fff;box-shadow:0 0 0 2px var(--teal-soft);}
+  textarea.cell-input{min-height:30px;}
+  select.cell-input{cursor:pointer;-webkit-appearance:none;appearance:none;font-weight:600;padding-right:5px;}
+  .row-x{border:none;background:none;color:var(--faint);cursor:pointer;font-size:15px;line-height:1;padding:4px 6px;border-radius:5px;opacity:0;}
+  table.dt tr:hover .row-x{opacity:1;}
+  .row-x:hover{color:var(--risk);background:var(--risk-soft);}
+  .tablefoot{display:flex;align-items:center;gap:10px;padding:8px 11px;background:var(--paper);border-top:1px solid var(--line);}
+
+  /* checkbox rows */
+  .checkrow{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);}
+  .checkrow:first-child{border-top:none;}
+  .checkrow input[type=checkbox]{margin-top:3px;width:17px;height:17px;accent-color:var(--teal);cursor:pointer;flex:0 0 auto;}
+  .checkrow .ctxt{flex:1;padding:1px 7px;margin-left:-7px;border-radius:6px;font-size:14px;}
+  .checkrow input:checked + .ctxt{color:var(--faint);text-decoration:line-through;}
+
+  /* lifecycle stepper */
+  .stepper{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0;}
+  .step{font-size:11.5px;font-weight:600;padding:5px 12px 5px 14px;background:var(--slate-soft);color:var(--slate);border-radius:4px;position:relative;}
+  .step.done{background:var(--teal-soft);color:var(--teal-deep);}
+  .step.current{background:var(--teal);color:#fff;}
+  .step .n{opacity:.6;margin-right:5px;}
+
+  .callout{border-left:3px solid var(--teal);background:var(--teal-soft);padding:11px 15px;border-radius:0 8px 8px 0;font-size:13.5px;color:var(--teal-deep);margin:14px 0;}
+  .callout.warn{border-color:var(--warn);background:var(--warn-soft);color:var(--warn);}
+  .callout b{color:inherit;}
+
+  .infobar{display:flex;gap:12px;align-items:flex-start;background:var(--info-soft);border:1px solid #cfdcec;color:var(--info);padding:11px 15px;border-radius:9px;margin-bottom:20px;font-size:13px;}
+  .infobar .x{margin-left:auto;background:none;border:none;color:var(--info);cursor:pointer;font-size:16px;padding:0 4px;}
+
+  .pillar-tag{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px;vertical-align:-1px;}
+
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:1100px){ .grid-4{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(2,1fr);} }
+  @media(max-width:860px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{position:static;height:auto;}
+    .navwrap{display:none;}
+    .navwrap.open{display:block;}
+    .menubtn{display:inline-flex;}
+    .twocol,.grid-2{grid-template-columns:1fr;}
+    .content{padding:20px 16px 60px;}
+    .topbar{padding:11px 16px;}
+  }
+  .menubtn{display:none;}
+
+  /* print */
+  @media print{
+    .sidebar,.topbar,.no-print,.row-x,.add-line,.tablefoot .btn,.menubtn{display:none !important;}
+    .app{display:block;}
+    .view{display:block !important;page-break-before:always;}
+    .view:first-of-type{page-break-before:avoid;}
+    .content{max-width:none;padding:0;}
+    body{background:#fff;font-size:11px;}
+    .card,.tile,.tablewrap{box-shadow:none;break-inside:avoid;}
+  }
+
+  dialog{border:none;border-radius:14px;box-shadow:0 30px 80px rgba(21,32,43,.3);padding:0;max-width:560px;width:92vw;}
+  dialog::backdrop{background:rgba(21,32,43,.4);}
+  .modal-head{padding:18px 22px 0;}
+  .modal-head h3{font-family:var(--display);font-size:20px;margin:0 0 4px;}
+  .modal-head p{color:var(--muted);font-size:13px;margin:0;}
+  .modal-body{padding:16px 22px;}
+  .modal-foot{padding:14px 22px;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end;background:var(--paper);border-radius:0 0 14px 14px;}
+  .modal-body textarea{width:100%;min-height:160px;font-family:var(--mono);font-size:12px;border:1px solid var(--line-strong);border-radius:8px;padding:10px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">D</div>
+      <div>
+        <h1>DEIAB Committee</h1>
+        <p>NASW&#8209;Illinois &middot; Operating System</p>
+      </div>
+    </div>
+    <button class="btn ghost sm menubtn no-print" onclick="document.querySelector('.navwrap').classList.toggle('open')" style="margin-bottom:8px;color:#cfd7df;border-color:rgba(255,255,255,.15);">☰ Sections</button>
+    <div class="navwrap" id="nav"><!-- nav rendered by JS --></div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <div class="topbar no-print">
+      <div class="crumb">DEIAB Operating System <span style="color:var(--line-strong)">/</span> <b id="crumb">Dashboard</b></div>
+      <div class="spacer"></div>
+      <div class="savestate" id="saveState"><span class="pip"></span><span id="saveLabel">Saved locally</span></div>
+      <button class="btn sm" onclick="doPrint()">Print / PDF</button>
+      <button class="btn sm" onclick="openCopy()">Copy view</button>
+      <button class="btn sm" onclick="exportJSON()">Back up</button>
+      <button class="btn sm" onclick="document.getElementById('importFile').click()">Restore</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJSON(event)">
+    </div>
+    <div class="content" id="content"><!-- views rendered by JS --></div>
+  </div>
+</div>
+
+<!-- copy / export dialog -->
+<dialog id="copyModal">
+  <div class="modal-head"><h3>Copy this section</h3><p>Plain text formatted for Google Docs, Notion, Loop, or Canva Docs. Select all and copy.</p></div>
+  <div class="modal-body"><textarea id="copyText" readonly></textarea></div>
+  <div class="modal-foot">
+    <button class="btn" onclick="document.getElementById('copyModal').close()">Close</button>
+    <button class="btn primary" onclick="copyToClipboard()">Copy to clipboard</button>
+  </div>
+</dialog>
+
+<script>
+/* ============================================================
+   STATE  — single source of truth.  Every view reads from here.
+   ============================================================ */
+const TODAY = new Date().toISOString().slice(0,10);
+const fmtDate = d => d ? new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+
+const SEED = {
+  meta:{ updated:TODAY },
+  todayMeeting:{
+    date:TODAY,
+    attendees:"Lorena Guerrero, Winston Scott",
+    notes:"",
+    parking:[]
+  },
+  charter:{
+    mission:"The NASW-Illinois DEIAB Committee advances Diversity, Equity, Inclusion, Accessibility, and Belonging across the social work profession and within NASW-Illinois — so that every member, and every community we serve, is seen, supported, and able to thrive.",
+    vision:"A social work profession in Illinois where equity is structural, belonging is the norm, and social workers are resourced to practice with courage.",
+    scope:"Racial and ethnic diversity, social justice, women's advancement, LGBTQIA+ inclusion, accessibility, and member belonging — together with stewardship of the Courageous Care, Collective Power campaign.",
+    principles:[
+      "Action over discussion — every meeting ends with decisions, named owners, and deadlines.",
+      "Shared ownership — work is distributed fairly and matched to members' strengths.",
+      "Voices before volume — members feel heard and their expertise is put to use.",
+      "Continuity by design — we build systems that outlast any single chair.",
+      "Transparency — decisions and progress are visible to members and the Board."
+    ],
+    authority:"An advisory committee of NASW-Illinois operating under the Board. The committee is empowered to propose initiatives, develop resources, steward campaigns, and represent DEIAB priorities to members and the public. Commitments involving budget, public positions, or external partnerships are brought to the Board for approval.",
+    board:"The committee reports to the NASW-Illinois Board through its designated liaison. Annual objectives are aligned with Board priorities, and co-chairs provide periodic progress updates.",
+    objectives:[
+      "Host at least four DEIAB educational offerings for members this year.",
+      "Sustain the Courageous Care, Collective Power campaign with monthly content.",
+      "Publish two reusable member-facing resources or toolkits.",
+      "Establish or formalize two community/organizational partnerships.",
+      "Complete an accessibility review of NASW-IL events and communications."
+    ]
+  },
+  roles:[
+    {role:"Lorraine (Lorena) Guerrero, LCSW — External & Facilitation Co-Chair", primary:"Leads meetings; facilitates discussion; public speaking; relationship-building; represents the committee publicly; fosters an inclusive environment where members feel heard.", backup:"Co-signs agendas; supports follow-up when Winston is unavailable.", notes:"Roles complement, not silo — both collaborate closely on strategy."},
+    {role:"Winston Scott — Operations & Systems Co-Chair", primary:"Operations; project management; agendas; action-item tracking; documentation; workflows; post-meeting follow-up; long-term planning.", backup:"Can facilitate a meeting or represent the committee if Lorena is unavailable.", notes:"Maintains this operating system as the committee's system of record."}
+  ],
+  agreements:[
+    {text:"Every agenda item ends with a decision or a named next step.", on:true},
+    {text:"We start and end on time; the Parking Lot catches good-but-not-today ideas.", on:true},
+    {text:"Voices before volume — we make room for every member to contribute.", on:true},
+    {text:"Disagreement is welcome; we critique ideas, not people.", on:true},
+    {text:"Owners and deadlines are assigned in the room, not after.", on:false},
+    {text:"What's decided here is recorded in the Decision Log and not re-litigated.", on:false}
+  ],
+  meetingTemplate:{
+    cadence:"Monthly 75-minute working meeting (2nd Tuesday) + a quarterly 90-minute planning session.",
+    agenda:[
+      "Welcome & check-in (5 min)",
+      "Review of last meeting's action items (10 min)",
+      "Campaign & pillar updates (15 min)",
+      "Focused working topic — 1 to 2 items (25 min)",
+      "Decisions, owners & deadlines (10 min)",
+      "Open floor / member voices (5 min)",
+      "Recap & close — confirm next steps (5 min)"
+    ],
+    checkins:[
+      "One word for how you're arriving today.",
+      "What's one thing you're proud of since we last met?",
+      "Where do you most want the committee's energy this month?"
+    ],
+    decision:"Proposals are surfaced, discussed, and decided by consensus where possible; if consensus stalls, a simple majority of present members decides. Every decision is logged with date, owner, and deadline."
+  },
+  meetings:[],
+  pillars:[
+    {id:"edu", name:"Education", color:"#36608F", purpose:"Build member knowledge and skill in DEIAB practice through trainings, panels, and learning resources.", projects:"CE workshops; lunch-and-learn series; reading/resource lists.", owner:"", status:"Active", next:"Confirm first training topic & date."},
+    {id:"adv", name:"Advocacy", color:"#BE3B2A", purpose:"Advance equity and social justice in policy and practice, and protect social workers' ability to advocate.", projects:"Legislative watch; action alerts; testimony support.", owner:"", status:"Planning", next:"Identify priority legislative issues."},
+    {id:"com", name:"Community & Belonging", color:"#6A3D6B", purpose:"Create spaces where members feel they belong and where their expertise is valued.", projects:"Affinity spaces; mentorship; member spotlights.", owner:"", status:"Idea", next:"Survey members on belonging needs."},
+    {id:"acc", name:"Accessibility & Inclusion", color:"#1F6A6E", purpose:"Make NASW-IL events, communications, and resources accessible to all members.", projects:"Event accessibility checklist; captioning standards; plain-language review.", owner:"", status:"Planning", next:"Draft event accessibility checklist."}
+  ],
+  initiatives:[
+    {name:"Courageous Care content series", pillar:"adv", lead:"", support:"", phase:"Implementation", priority:"High", target:"", impact:"Supports members facing burnout, moral distress & retaliation.", status:"Active"},
+    {name:"Event accessibility checklist", pillar:"acc", lead:"", support:"", phase:"Planning", priority:"Medium", target:"", impact:"Every NASW-IL event becomes more accessible.", status:"Active"},
+    {name:"DEIAB member belonging survey", pillar:"com", lead:"", support:"", phase:"Discussion", priority:"Medium", target:"", impact:"Grounds committee work in member-stated needs.", status:"Active"}
+  ],
+  actions:[
+    {task:"Finalize Charter draft and circulate to Joel & LaTasha", owner:"Winston", due:"", priority:"High", status:"In progress", notes:"Founding document for sign-off."},
+    {task:"Confirm committee authority & Board's DEIAB priorities", owner:"Lorena", due:"", priority:"High", status:"Not started", notes:"Use the Board questions list."},
+    {task:"Set recurring monthly cadence and send calendar holds", owner:"Winston", due:"", priority:"High", status:"Not started", notes:"Monthly working + quarterly planning."}
+  ],
+  decisions:[
+    {date:TODAY, decision:"Adopted a divided co-chair model: Lorena leads external/facilitation, Winston leads operations/systems.", context:"Per LaTasha's guidance to define ownership while collaborating closely."}
+  ],
+  campaign:{
+    purpose:"Courageous Care, Collective Power supports social workers experiencing burnout, compassion fatigue, moral distress, fear of retaliation, and the difficulty of advocating within hostile systems.",
+    support:[
+      "Steward the campaign as standing committee work, not a one-time push.",
+      "Surface member stories (with consent) that show solidarity and resilience.",
+      "Connect members to mental-health, peer-support, and self-advocacy resources.",
+      "Translate the campaign into concrete trainings and toolkits."
+    ],
+    content:[
+      "Monthly 'courageous care' practice spotlight or member story.",
+      "Self-advocacy and rights-at-work explainer.",
+      "Burnout & moral-distress recognition + resources post.",
+      "Peer-support / collective-action feature."
+    ],
+    engagement:[
+      "Invite members to share what 'collective power' means to them.",
+      "Host a low-stakes virtual circle for processing and support.",
+      "Recognize members doing courageous work each month."
+    ]
+  },
+  goals:[
+    {goal:"Educational events held", metric:"# events", target:"4", current:"0", status:"On track"},
+    {goal:"Active members engaged", metric:"# members", target:"15", current:"2", status:"On track"},
+    {goal:"Resources / toolkits published", metric:"# resources", target:"2", current:"0", status:"On track"},
+    {goal:"Partnerships formed", metric:"# partners", target:"2", current:"0", status:"Not started"},
+    {goal:"Advocacy initiatives launched", metric:"# initiatives", target:"3", current:"1", status:"On track"},
+    {goal:"Accessibility improvements", metric:"# improvements", target:"3", current:"0", status:"At risk"},
+    {goal:"Campaign content cadence", metric:"posts / month", target:"4", current:"1", status:"On track"}
+  ],
+  members:[
+    {name:"Lorraine (Lorena) Guerrero, LCSW", role:"Co-Chair (External & Facilitation)", interests:"Facilitation, public engagement, belonging", expertise:"Public speaking, relationship-building", preferred:"Community & Belonging, Advocacy", contact:"lcsw.lorraine@gmail.com", avail:"Monthly + as needed"},
+    {name:"Winston Scott", role:"Co-Chair (Operations & Systems)", interests:"Systems, project management, documentation", expertise:"Workflows, planning, follow-through", preferred:"All pillars (operations)", contact:"Wwinstonscott@gmail.com", avail:"Monthly + as needed"},
+    {name:"Jordan Dobrowski", role:"Committee member", interests:"", expertise:"", preferred:"", contact:"jordan@willowandleafcounseling.com", avail:""},
+    {name:"Holly Mareski", role:"Committee member", interests:"", expertise:"", preferred:"", contact:"mareskih@aol.com", avail:""},
+    {name:"Kristin Radcliffe", role:"Committee member", interests:"", expertise:"", preferred:"", contact:"kbradcliffe@gmail.com", avail:""},
+    {name:"Althia Gayle", role:"Committee member", interests:"", expertise:"", preferred:"", contact:"agayle2@gmail.com", avail:""},
+    {name:"Kathy Muloski", role:"Committee member", interests:"", expertise:"", preferred:"", contact:"kmuloski@comcast.net", avail:""},
+    {name:"Nicole Maronde", role:"Committee member", interests:"", expertise:"", preferred:"", contact:"nicolemaronde@gmail.com", avail:""},
+    {name:"Cynthia Bradley", role:"Committee member", interests:"", expertise:"", preferred:"", contact:"cmb107295@gmail.com", avail:""}
+  ],
+  resources:[
+    {title:"NASW Code of Ethics — diversity & social justice standards", type:"Standard", link:"", notes:"Anchor for committee positions."},
+    {title:"Courageous Care, Collective Power — campaign materials", type:"Campaign", link:"", notes:"Central campaign assets."}
+  ],
+  risks:[
+    {type:"Risk", item:"Volunteer burnout among committee members", level:"High", owner:"Co-Chairs", plan:"Share work fairly; rotate ownership; protect scope.", status:"Monitoring"},
+    {type:"Risk", item:"Projects that stall and quietly go inactive", level:"Medium", owner:"Winston", plan:"Lifecycle review at each meeting; archive deliberately.", status:"Monitoring"},
+    {type:"Risk", item:"Resource / budget limitations", level:"Medium", owner:"Co-Chairs", plan:"Confirm available support with Board; pursue low-cost wins first.", status:"Open"},
+    {type:"Risk", item:"Communication gaps with members or Board", level:"Medium", owner:"Lorena", plan:"Regular updates; visible decision log.", status:"Monitoring"},
+    {type:"Opportunity", item:"Community & organizational partnerships", level:"High", owner:"Lorena", plan:"Map potential partners; make warm intros.", status:"Open"},
+    {type:"Opportunity", item:"Grants to fund DEIAB programming", level:"Medium", owner:"", plan:"Scan NASW & external grant calendars.", status:"Open"},
+    {type:"Opportunity", item:"Conference & event presence", level:"Medium", owner:"", plan:"Propose a session at the next NASW-IL conference.", status:"Open"}
+  ],
+  questions:[
+    {q:"What are the Board's highest priorities for DEIAB this year?", answer:"", done:false},
+    {q:"Which existing projects or commitments should continue?", answer:"", done:false},
+    {q:"What level of autonomy does the committee have to launch initiatives?", answer:"", done:false},
+    {q:"What support and resources (budget, staff, platforms) are available?", answer:"", done:false},
+    {q:"How does the Board want success measured and reported?", answer:"", done:false},
+    {q:"Who is our Board liaison, and how often should we report?", answer:"", done:false},
+    {q:"Are there sensitivities or commitments we should know about up front?", answer:"", done:false}
+  ],
+  transition:{
+    intro:"This guide is written so a future co-chair can step in with minimal disruption. Keep it current — it is the committee's insurance policy.",
+    responsibilities:[
+      "Maintain the Charter, this operating system, and the meeting cadence.",
+      "Keep the Decision Log and Action Tracker current and visible.",
+      "Steward active campaigns and the initiative portfolio.",
+      "Report to the Board liaison on the agreed schedule."
+    ],
+    timeline:[
+      "Start of year — review Charter & set annual objectives with the Board.",
+      "Each quarter — planning session; review goals dashboard & portfolio.",
+      "Each month — working meeting; refresh action items & decisions.",
+      "End of year — write lessons learned; brief incoming co-chair."
+    ],
+    lessons:[
+      "Decisions are easy to lose — write them down the same day.",
+      "Fairly shared work keeps volunteers; overloaded chairs burn out."
+    ],
+    contacts:[
+      "NASW-IL President — LaTasha Roberson-Guifarro · latasha_roberson@lcfs.org",
+      "NASW-IL Executive Director — Joel L. Rubin · jrubin.naswil@socialworkers.org",
+      "NASW-IL Staff — Candace Gingrich · cgingrich.naswil@socialworkers.org"
+    ],
+    orientation:[
+      {text:"Read the Charter and current annual objectives.", on:false},
+      {text:"Review the last three meeting records and open action items.", on:false},
+      {text:"Meet the Board liaison and confirm reporting expectations.", on:false},
+      {text:"Get access to this operating system file and the backup routine.", on:false},
+      {text:"Review the active initiative portfolio and the campaign.", on:false},
+      {text:"Introduce yourself to committee members individually.", on:false}
+    ]
+  },
+  draftNote:"We're grateful to help shape this committee. Below is our proposal for how the DEIAB Committee can operate as a sustainable, accountable system. We'd welcome your guidance on priorities, autonomy, and available support."
+};
+
+const PHASES = ["Idea","Discussion","Decision","Planning","Assigned Owner","Implementation","Evaluation","Archive"];
+const PRI = ["High","Medium","Low"];
+const STATUS = ["Not started","In progress","Done","Blocked"];
+const INIT_STATUS = ["Active","Idea","Planning","On hold","Complete"];
+const GOAL_STATUS = ["On track","At risk","Behind","Not started","Complete"];
+
+/* ---- persistence (wrapped so storage failure never breaks the app) ---- */
+const KEY = "deiab_os_v1";
+let state;
+try{
+  const raw = localStorage.getItem(KEY);
+  state = raw ? JSON.parse(raw) : structuredClone(SEED);
+}catch(e){ state = structuredClone(SEED); }
+
+let storageOK = true;
+function save(){
+  state.meta.updated = TODAY;
+  try{
+    localStorage.setItem(KEY, JSON.stringify(state));
+    setSaved("Saved locally", false);
+  }catch(e){
+    storageOK = false;
+    setSaved("In-session only — use Back up", true);
+  }
+}
+function setSaved(label, unsaved){
+  document.getElementById('saveLabel').textContent = label;
+  document.getElementById('saveState').classList.toggle('unsaved', !!unsaved);
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+const NAV = [
+  {group:"Command", items:[
+    {id:"dashboard", label:"Dashboard"},
+    {id:"today", label:"Today's Meeting"}
+  ]},
+  {group:"Foundation", items:[
+    {id:"charter", label:"Committee Charter"},
+    {id:"roles", label:"Co-Chair Roles"},
+    {id:"agreements", label:"Working Agreements"}
+  ]},
+  {group:"Meetings", items:[
+    {id:"structure", label:"Meeting Structure"},
+    {id:"history", label:"Meeting History"}
+  ]},
+  {group:"The Work", items:[
+    {id:"pillars", label:"Project Pillars"},
+    {id:"initiatives", label:"Initiative Portfolio"},
+    {id:"actions", label:"Action Tracker"},
+    {id:"decisions", label:"Decision Log"}
+  ]},
+  {group:"Campaign & Goals", items:[
+    {id:"campaign", label:"Courageous Care"},
+    {id:"goals", label:"Annual Goals"}
+  ]},
+  {group:"People & Knowledge", items:[
+    {id:"members", label:"Member Directory"},
+    {id:"resources", label:"Resource Library"},
+    {id:"risks", label:"Risk & Opportunity"}
+  ]},
+  {group:"Governance", items:[
+    {id:"questions", label:"Questions for the Board"},
+    {id:"transition", label:"Transition Guide"},
+    {id:"draft", label:"Draft to Share"}
+  ]}
+];
+
+let activeView = "dashboard";
+
+function renderNav(){
+  const overdue = overdueActions().length;
+  const openQ = state.questions.filter(q=>!q.done).length;
+  const nav = NAV.map(g=>`
+    <div class="navgroup">
+      <div class="navgroup-label">${g.group}</div>
+      ${g.items.map(it=>{
+        let badge="";
+        if(it.id==="actions" && overdue) badge=`<span class="badge">${overdue}</span>`;
+        if(it.id==="questions" && openQ) badge=`<span class="badge muted">${openQ}</span>`;
+        return `<button class="navitem ${activeView===it.id?'active':''}" onclick="go('${it.id}')">
+          <span class="dot"></span>${it.label}${badge}</button>`;
+      }).join("")}
+    </div>`).join("");
+  document.getElementById('nav').innerHTML = nav;
+}
+
+function go(id){
+  activeView = id;
+  const flat = NAV.flatMap(g=>g.items);
+  document.getElementById('crumb').textContent = (flat.find(i=>i.id===id)||{}).label || id;
+  renderNav();
+  document.getElementById('content').innerHTML = VIEWS[id] ? VIEWS[id]() : "";
+  window.scrollTo(0,0);
+  document.querySelector('.navwrap')?.classList.remove('open');
+}
+
+/* ============================================================
+   DERIVED DASHBOARD DATA
+   ============================================================ */
+function overdueActions(){
+  return state.actions.filter(a=>a.due && a.due < TODAY && a.status!=="Done");
+}
+function activeInits(){
+  return state.initiatives.filter(i=>["Active","Planning"].includes(i.status) || ["Planning","Implementation"].includes(i.phase));
+}
+function highPriorities(){
+  return [
+    ...state.actions.filter(a=>a.priority==="High" && a.status!=="Done").map(a=>({t:a.task, tag:a.owner||"Unassigned", kind:"action"})),
+    ...state.initiatives.filter(i=>i.priority==="High" && i.status!=="Complete").map(i=>({t:i.name, tag:pillarName(i.pillar), kind:"initiative"}))
+  ];
+}
+function recentDecisions(){
+  return [...state.decisions].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,5);
+}
+function pillarName(id){ return (state.pillars.find(p=>p.id===id)||{}).name || "—"; }
+function pillarColor(id){ return (state.pillars.find(p=>p.id===id)||{}).color || "var(--slate)"; }
+
+/* ============================================================
+   GENERIC HELPERS for editable content
+   ============================================================ */
+function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+// editable prose bound to a state path
+function ce(path, opts={}){
+  const val = getPath(path);
+  const cls = opts.serif ? "prose serif editable-block" : "prose editable-block";
+  return `<div class="${cls}" contenteditable="true" oninput="setPath('${path}', this.innerText)">${esc(val)}</div>`;
+}
+function getPath(p){ return p.split('.').reduce((o,k)=>o&&o[k],state); }
+function setPath(p, v){
+  const ks=p.split('.'); let o=state;
+  for(let i=0;i<ks.length-1;i++) o=o[ks[i]];
+  o[ks[ks.length-1]]=v; save();
+}
+
+// editable bullet list bound to an array path
+function edList(arrPath, opts={}){
+  const arr = getPath(arrPath) || [];
+  const bullet = opts.bullet || "▸";
+  return `<ul class="ed-list" id="edl_${arrPath.replace(/\./g,'_')}">
+    ${arr.map((item,i)=>`<li>
+      <span class="bullet">${bullet}</span>
+      <span class="txt" contenteditable="true" oninput="updateArr('${arrPath}',${i},this.innerText)">${esc(item)}</span>
+      <button class="x" title="Remove" onclick="removeArr('${arrPath}',${i})">×</button>
+    </li>`).join("")}
+  </ul>
+  <button class="add-line" onclick="addArr('${arrPath}','${opts.placeholder||"New item"}')">+ Add</button>`;
+}
+function updateArr(path,i,v){ const a=getPath(path); a[i]=v; save(); }
+function removeArr(path,i){ const a=getPath(path); a.splice(i,1); save(); go(activeView); }
+function addArr(path,ph){ const a=getPath(path); a.push(""); save(); go(activeView); }
+
+/* generic data table.
+   schema: [{key,label,type,options,width}] ; type: text|area|select|date */
+function dataTable(arrPath, schema){
+  const arr = getPath(arrPath);
+  const head = schema.map(c=>`<th${c.width?` style="width:${c.width}"`:""}>${c.label}</th>`).join("") + "<th></th>";
+  const rows = arr.map((row,ri)=>{
+    const cells = schema.map(c=>{
+      const v = row[c.key];
+      if(c.type==="select"){
+        const opts=c.options.map(o=>`<option ${o===v?"selected":""}>${o}</option>`).join("");
+        return `<td><select class="cell-input ${statusClassFor(c.key,v)}" onchange="setCell('${arrPath}',${ri},'${c.key}',this.value)">${opts}</select></td>`;
+      }
+      if(c.type==="area"){
+        return `<td><textarea class="cell-input" rows="1" oninput="setCell('${arrPath}',${ri},'${c.key}',this.value)" placeholder="${c.ph||""}">${esc(v)}</textarea></td>`;
+      }
+      if(c.type==="date"){
+        return `<td><input type="date" class="cell-input" value="${esc(v)}" onchange="setCell('${arrPath}',${ri},'${c.key}',this.value)"></td>`;
+      }
+      if(c.type==="pillar"){
+        const opts=state.pillars.map(p=>`<option value="${p.id}" ${p.id===v?"selected":""}>${p.name}</option>`).join("");
+        return `<td><select class="cell-input" onchange="setCell('${arrPath}',${ri},'${c.key}',this.value)">${opts}</select></td>`;
+      }
+      return `<td><input class="cell-input" value="${esc(v)}" oninput="setCell('${arrPath}',${ri},'${c.key}',this.value)" placeholder="${c.ph||""}"></td>`;
+    }).join("");
+    return `<tr>${cells}<td><button class="row-x" title="Delete row" onclick="delRow('${arrPath}',${ri})">×</button></td></tr>`;
+  }).join("");
+  return `<div class="tablewrap"><table class="dt">
+    <thead><tr>${head}</tr></thead>
+    <tbody>${rows || `<tr><td colspan="${schema.length+1}"><span class="empty">No entries yet.</span></td></tr>`}</tbody>
+  </table>
+  <div class="tablefoot"><button class="btn sm" onclick="addRow('${arrPath}', ${JSON.stringify(schema.map(s=>s.key)).replace(/"/g,'&quot;')})">+ Add row</button></div>
+  </div>`;
+}
+function statusClassFor(key,v){
+  if(!v) return "";
+  const ok=["Done","Active","On track","Complete","Monitoring"];
+  const warn=["In progress","Planning","At risk","On hold","Open"];
+  const risk=["Blocked","Behind","Overdue"];
+  if(ok.includes(v)) return "";
+  if(risk.includes(v)) return "";
+  return "";
+}
+function setCell(path,ri,key,val){ getPath(path)[ri][key]=val; save(); if(activeView==="dashboard")go("dashboard"); }
+function delRow(path,ri){ getPath(path).splice(ri,1); save(); go(activeView); }
+function addRow(path,keys){ const o={}; keys.forEach(k=>o[k]=""); getPath(path).push(o); save(); go(activeView); }
+
+/* ============================================================
+   VIEWS
+   ============================================================ */
+const VIEWS = {};
+
+VIEWS.dashboard = () => {
+  const overdue = overdueActions();
+  const inits = activeInits();
+  const pris = highPriorities();
+  const decs = recentDecisions();
+  const openActions = state.actions.filter(a=>a.status!=="Done").length;
+  const nextMtg = state.todayMeeting.date;
+  const infobar = state.meta.hideInfo ? "" : `
+    <div class="infobar no-print">
+      <span>📌</span>
+      <div><b>Make this yours:</b> download this file and open it from your computer so checkboxes and entries save between sessions. Use <b>Back up</b> any time to export a JSON copy — that's your safety net.</div>
+      <button class="x" onclick="state.meta.hideInfo=true;save();go('dashboard')">×</button>
+    </div>`;
+  return `
+  ${infobar}
+  <p class="page-eyebrow">Command Center</p>
+  <h1 class="page-title">DEIAB Committee Dashboard</h1>
+  <p class="page-lede">A live picture of where the committee stands. Everything here is calculated from the sections below — you never update this page by hand.</p>
+
+  <div class="grid grid-4" style="margin-bottom:18px;">
+    <div class="tile ${overdue.length?'attn':'ok'}"><div class="rail"></div>
+      <div class="k">Overdue items</div><div class="v">${overdue.length}</div>
+      <div class="sub">${overdue.length?'Need attention now':'Nothing overdue'}</div></div>
+    <div class="tile teal"><div class="rail"></div>
+      <div class="k">Open action items</div><div class="v">${openActions}</div>
+      <div class="sub">Across the committee</div></div>
+    <div class="tile info"><div class="rail"></div>
+      <div class="k">Active initiatives</div><div class="v">${inits.length}</div>
+      <div class="sub">In planning or motion</div></div>
+    <div class="tile warn"><div class="rail"></div>
+      <div class="k">Next meeting</div><div class="v" style="font-size:18px;line-height:1.3;padding-top:4px;">${fmtDate(nextMtg)}</div>
+      <div class="sub">${esc(state.meetingTemplate.cadence.split('+')[0].trim())}</div></div>
+  </div>
+
+  <div class="twocol">
+    <div class="card listcard">
+      <div class="card-head"><h3>Current priorities</h3><span class="meta">High priority &amp; open</span></div>
+      <ul>${pris.length?pris.map(p=>`<li><span class="lead">${esc(p.t)}</span><span class="tail">${esc(p.tag)}</span></li>`).join(""):`<li class="empty">No high-priority items flagged.</li>`}</ul>
+    </div>
+    <div class="card listcard">
+      <div class="card-head"><h3>Overdue action items</h3><span class="meta">Past due &amp; not done</span></div>
+      <ul>${overdue.length?overdue.map(a=>`<li><span class="lead">${esc(a.task)}</span><span class="tail">${esc(a.owner||'—')} · ${fmtDate(a.due)}</span></li>`).join(""):`<li class="empty">All caught up — nothing overdue.</li>`}</ul>
+    </div>
+  </div>
+
+  <div class="twocol">
+    <div class="card listcard">
+      <div class="card-head"><h3>Active projects</h3><span class="meta">Initiative portfolio</span></div>
+      <ul>${inits.length?inits.map(i=>`<li><span class="pillar-tag" style="background:${pillarColor(i.pillar)}"></span><span class="lead">${esc(i.name)}</span><span class="tail">${esc(i.phase)}</span></li>`).join(""):`<li class="empty">No active initiatives yet.</li>`}</ul>
+    </div>
+    <div class="card listcard">
+      <div class="card-head"><h3>Recent decisions</h3><span class="meta">Decision log</span></div>
+      <ul>${decs.length?decs.map(d=>`<li><span class="lead">${esc(d.decision)}</span><span class="tail">${fmtDate(d.date)}</span></li>`).join(""):`<li class="empty">No decisions logged yet.</li>`}</ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Jump to a section</h3></div>
+    <div class="grid grid-4" style="gap:8px;">
+      ${["charter","roles","structure","initiatives","actions","decisions","campaign","questions"].map(id=>{
+        const lbl=NAV.flatMap(g=>g.items).find(i=>i.id===id).label;
+        return `<button class="btn sm" style="text-align:left" onclick="go('${id}')">${lbl} →</button>`;
+      }).join("")}
+    </div>
+  </div>`;
+};
+
+VIEWS.today = () => `
+  <p class="page-eyebrow">Live Capture</p>
+  <h1 class="page-title">Today's Meeting</h1>
+  <p class="page-lede">Capture decisions and tasks the moment they happen — they flow into the trackers automatically. When the meeting ends, save it to Meeting History.</p>
+
+  <div class="card">
+    <div class="twocol" style="gap:18px;">
+      <div><div class="field-label">Date</div>
+        <input type="date" class="cell-input" style="border:1px solid var(--line);border-radius:7px;padding:7px 9px;" value="${esc(state.todayMeeting.date)}" onchange="setPath('todayMeeting.date',this.value);go('today')"></div>
+      <div><div class="field-label">Present</div>${ce('todayMeeting.attendees')}</div>
+    </div>
+    <div class="field-label">Running notes</div>${ce('todayMeeting.notes')}
+  </div>
+
+  <div class="twocol">
+    <div class="card">
+      <div class="card-head"><h3>Capture a decision</h3><span class="meta">→ Decision Log</span></div>
+      <p class="page-lede" style="font-size:13px;margin-bottom:10px;">Add decisions here as you make them.</p>
+      ${dataTable('decisions',[
+        {key:'date',label:'Date',type:'date',width:'120px'},
+        {key:'decision',label:'Decision',type:'area'},
+        {key:'context',label:'Why / context',type:'area'}
+      ])}
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Parking lot</h3><span class="meta">Good, not today</span></div>
+      <p class="page-lede" style="font-size:13px;margin-bottom:6px;">Catch ideas without derailing the meeting.</p>
+      ${edList('todayMeeting.parking',{placeholder:'Idea to revisit'})}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Assign action items</h3><span class="meta">→ Action Tracker</span></div>
+    ${dataTable('actions',[
+      {key:'task',label:'Task',type:'area'},
+      {key:'owner',label:'Owner',type:'text',width:'110px'},
+      {key:'due',label:'Due',type:'date',width:'120px'},
+      {key:'priority',label:'Priority',type:'select',options:PRI,width:'100px'},
+      {key:'status',label:'Status',type:'select',options:STATUS,width:'120px'}
+    ])}
+  </div>
+
+  <div class="callout"><b>Close the meeting well:</b> confirm every item has an owner and a date, then record this meeting in <a href="#" onclick="archiveMeeting();return false;">Meeting History →</a></div>
+`;
+
+VIEWS.charter = () => `
+  <p class="page-eyebrow">Foundational Document</p>
+  <h1 class="page-title">Committee Charter</h1>
+  <p class="page-lede">The committee's founding document. Living — revise it as the committee matures, and confirm the authority and Board sections with Joel &amp; LaTasha.</p>
+
+  <div class="card">
+    <div class="field-label">Mission</div>${ce('charter.mission',{serif:true})}
+    <div class="field-label">Vision</div>${ce('charter.vision',{serif:true})}
+    <div class="field-label">Scope</div>${ce('charter.scope')}
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Guiding principles</h3></div>
+    ${edList('charter.principles')}
+  </div>
+
+  <div class="twocol">
+    <div class="card">
+      <div class="card-head"><h3>Committee authority</h3></div>
+      ${ce('charter.authority')}
+      <div class="callout warn" style="margin-bottom:0;"><b>Confirm with the Board.</b> This is our drafted assumption of scope — verify it with Joel &amp; LaTasha before finalizing.</div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Relationship to the NASW-IL Board</h3></div>
+      ${ce('charter.board')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Annual objectives</h3><span class="meta">Tracked in Annual Goals</span></div>
+    ${edList('charter.objectives')}
+  </div>
+`;
+
+VIEWS.roles = () => `
+  <p class="page-eyebrow">Foundation</p>
+  <h1 class="page-title">Co-Chair Role Clarity</h1>
+  <p class="page-lede">Ownership is divided so the committee runs smoothly — but the roles complement each other rather than build silos.</p>
+  ${dataTable('roles',[
+    {key:'role',label:'Role',type:'area',width:'22%'},
+    {key:'primary',label:'Primary responsibilities',type:'area'},
+    {key:'backup',label:'Backup responsibilities',type:'area',width:'20%'},
+    {key:'notes',label:'Notes',type:'area',width:'16%'}
+  ])}
+  <div class="callout">Per LaTasha's guidance: define ownership clearly <b>and</b> collaborate closely. These roles flex as the committee grows.</div>
+`;
+
+VIEWS.agreements = () => `
+  <p class="page-eyebrow">Foundation</p>
+  <h1 class="page-title">Working Agreements</h1>
+  <p class="page-lede">Shared norms the committee adopts together. Check each one as the committee co-signs it — these are how accountable culture becomes everyone's job, not just the co-chairs'.</p>
+  <div class="card">
+    ${state.agreements.map((a,i)=>`
+      <div class="checkrow">
+        <input type="checkbox" ${a.on?'checked':''} onchange="state.agreements[${i}].on=this.checked;save()">
+        <span class="ctxt" contenteditable="true" oninput="state.agreements[${i}].text=this.innerText;save()">${esc(a.text)}</span>
+        <button class="row-x" onclick="state.agreements.splice(${i},1);save();go('agreements')">×</button>
+      </div>`).join("")}
+    <button class="add-line" onclick="state.agreements.push({text:'New agreement',on:false});save();go('agreements')">+ Add agreement</button>
+  </div>
+`;
+
+VIEWS.structure = () => `
+  <p class="page-eyebrow">Meetings</p>
+  <h1 class="page-title">Meeting Structure</h1>
+  <p class="page-lede">The template every meeting follows, so each one reliably produces decisions, owners, and deadlines.</p>
+
+  <div class="card">
+    <div class="card-head"><h3>Cadence</h3></div>
+    ${ce('meetingTemplate.cadence')}
+  </div>
+
+  <div class="twocol">
+    <div class="card">
+      <div class="card-head"><h3>Standard agenda &amp; time blocks</h3></div>
+      ${edList('meetingTemplate.agenda')}
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-head"><h3>Check-in questions</h3></div>
+        ${edList('meetingTemplate.checkins')}
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Decision-making process</h3></div>
+        ${ce('meetingTemplate.decision')}
+      </div>
+    </div>
+  </div>
+`;
+
+VIEWS.history = () => `
+  <p class="page-eyebrow">Meetings</p>
+  <h1 class="page-title">Meeting History</h1>
+  <p class="page-lede">Institutional memory. Each meeting becomes a permanent record of what was discussed, decided, and assigned. Use "Archive today's meeting" on the Today's Meeting page to add one.</p>
+  ${state.meetings.length===0 ? `<div class="card"><p class="empty">No meetings archived yet. When you finish a meeting, archive it from the <a href="#" onclick="go('today');return false;">Today's Meeting</a> page.</p></div>` :
+    state.meetings.slice().reverse().map((m,idx)=>{
+      const i = state.meetings.length-1-idx;
+      return `<div class="card">
+        <div class="card-head"><h3>${fmtDate(m.date)}</h3><span class="meta">Present: ${esc(m.attendees||'—')}</span>
+          <button class="btn ghost sm no-print" style="margin-left:8px" onclick="state.meetings.splice(${i},1);save();go('history')">Delete</button></div>
+        ${m.notes?`<div class="field-label">Notes</div><div class="prose">${esc(m.notes)}</div>`:""}
+        ${(m.decisions&&m.decisions.length)?`<div class="field-label">Decisions</div><ul class="ed-list">${m.decisions.map(d=>`<li><span class="bullet">▸</span><span class="txt">${esc(d.decision)}</span></li>`).join("")}</ul>`:""}
+        ${(m.actions&&m.actions.length)?`<div class="field-label">Action items</div><ul class="ed-list">${m.actions.map(a=>`<li><span class="bullet">▸</span><span class="txt">${esc(a.task)} — <b>${esc(a.owner||'—')}</b> · ${a.due?fmtDate(a.due):'no date'}</span></li>`).join("")}</ul>`:""}
+      </div>`;
+    }).join("")}
+`;
+
+VIEWS.pillars = () => `
+  <p class="page-eyebrow">The Work</p>
+  <h1 class="page-title">Project Pillars</h1>
+  <p class="page-lede">The four strands of committee work. Each pillar groups the initiatives in the portfolio.</p>
+  <div class="grid grid-2">
+  ${state.pillars.map((p,i)=>`
+    <div class="card" style="border-top:3px solid ${p.color}">
+      <div class="card-head"><h3><span class="pillar-tag" style="background:${p.color}"></span><span contenteditable="true" oninput="state.pillars[${i}].name=this.innerText;save()">${esc(p.name)}</span></h3>
+        <span class="pill ${p.status==='Active'?'ok':p.status==='Planning'?'warn':'slate'}" style="margin-left:auto">${esc(p.status)}</span></div>
+      <div class="field-label">Purpose</div><div class="prose editable-block" contenteditable="true" oninput="state.pillars[${i}].purpose=this.innerText;save()">${esc(p.purpose)}</div>
+      <div class="field-label">Possible projects</div><div class="prose editable-block" contenteditable="true" oninput="state.pillars[${i}].projects=this.innerText;save()">${esc(p.projects)}</div>
+      <div class="twocol" style="gap:12px;margin-top:8px;">
+        <div><div class="field-label">Owner</div><input class="cell-input" style="border:1px solid var(--line);border-radius:6px" value="${esc(p.owner)}" placeholder="Assign owner" oninput="state.pillars[${i}].owner=this.value;save()"></div>
+        <div><div class="field-label">Status</div><select class="cell-input" style="border:1px solid var(--line);border-radius:6px" onchange="state.pillars[${i}].status=this.value;save();go('pillars')">${["Idea","Planning","Active","On hold","Complete"].map(o=>`<option ${o===p.status?'selected':''}>${o}</option>`).join("")}</select></div>
+      </div>
+      <div class="field-label">Next step</div><div class="prose editable-block" contenteditable="true" oninput="state.pillars[${i}].next=this.innerText;save()">${esc(p.next)}</div>
+    </div>`).join("")}
+  </div>
+`;
+
+VIEWS.initiatives = () => `
+  <p class="page-eyebrow">The Work</p>
+  <h1 class="page-title">Initiative Portfolio</h1>
+  <p class="page-lede">The single source of truth for every committee project. Each initiative moves through the same lifecycle so "in progress" means the same thing to everyone.</p>
+
+  <div class="card">
+    <div class="card-head"><h3>Project lifecycle</h3><span class="meta">Every initiative follows this path</span></div>
+    <div class="stepper">
+      ${PHASES.map((p,i)=>`<div class="step"><span class="n">${i+1}</span>${p}</div>`).join("")}
+    </div>
+  </div>
+
+  ${dataTable('initiatives',[
+    {key:'name',label:'Initiative',type:'area',width:'18%'},
+    {key:'pillar',label:'Pillar',type:'pillar',width:'12%'},
+    {key:'lead',label:'Lead',type:'text',width:'90px'},
+    {key:'support',label:'Support',type:'text',width:'90px'},
+    {key:'phase',label:'Phase',type:'select',options:PHASES,width:'130px'},
+    {key:'priority',label:'Priority',type:'select',options:PRI,width:'95px'},
+    {key:'target',label:'Target',type:'date',width:'120px'},
+    {key:'impact',label:'Impact',type:'area'},
+    {key:'status',label:'Status',type:'select',options:INIT_STATUS,width:'105px'}
+  ])}
+`;
+
+VIEWS.actions = () => {
+  const overdue = overdueActions().length;
+  return `
+  <p class="page-eyebrow">The Work</p>
+  <h1 class="page-title">Action Item Tracker</h1>
+  <p class="page-lede">The committee's accountability backbone. ${overdue?`<b style="color:var(--risk)">${overdue} item${overdue>1?'s':''} overdue.</b>`:'Nothing overdue.'} Items here also appear on the dashboard and feed each meeting.</p>
+  ${dataTable('actions',[
+    {key:'task',label:'Task',type:'area'},
+    {key:'owner',label:'Owner',type:'text',width:'110px'},
+    {key:'due',label:'Due date',type:'date',width:'130px'},
+    {key:'priority',label:'Priority',type:'select',options:PRI,width:'100px'},
+    {key:'status',label:'Status',type:'select',options:STATUS,width:'120px'},
+    {key:'notes',label:'Notes',type:'area',width:'18%'}
+  ])}`;
+};
+
+VIEWS.decisions = () => `
+  <p class="page-eyebrow">The Work</p>
+  <h1 class="page-title">Decision Log</h1>
+  <p class="page-lede">A running record of what's been decided, so the committee never re-litigates settled questions. The most recent five surface on the dashboard.</p>
+  ${dataTable('decisions',[
+    {key:'date',label:'Date',type:'date',width:'130px'},
+    {key:'decision',label:'Decision',type:'area'},
+    {key:'context',label:'Context / rationale',type:'area',width:'34%'}
+  ])}
+`;
+
+VIEWS.campaign = () => `
+  <p class="page-eyebrow">Campaign</p>
+  <h1 class="page-title">Courageous Care, Collective Power</h1>
+  <p class="page-lede">Member-centered, practical support for social workers under strain — the kind of standing work the committee exists to sustain.</p>
+  <div class="card"><div class="card-head"><h3>Campaign purpose</h3></div>${ce('campaign.purpose')}</div>
+  <div class="twocol">
+    <div class="card"><div class="card-head"><h3>How the committee supports it</h3></div>${edList('campaign.support')}</div>
+    <div class="card"><div class="card-head"><h3>Monthly content ideas</h3></div>${edList('campaign.content')}</div>
+  </div>
+  <div class="card"><div class="card-head"><h3>Member engagement ideas</h3></div>${edList('campaign.engagement')}</div>
+`;
+
+VIEWS.goals = () => `
+  <p class="page-eyebrow">Goals</p>
+  <h1 class="page-title">Annual Goals Dashboard</h1>
+  <p class="page-lede">Measurable goals for the year, drawn from the charter's annual objectives. Update "current" as the year progresses.</p>
+  ${dataTable('goals',[
+    {key:'goal',label:'Goal',type:'text',width:'28%'},
+    {key:'metric',label:'Measure',type:'text',width:'16%'},
+    {key:'target',label:'Target',type:'text',width:'90px'},
+    {key:'current',label:'Current',type:'text',width:'90px'},
+    {key:'status',label:'Status',type:'select',options:GOAL_STATUS,width:'120px'}
+  ])}
+`;
+
+VIEWS.members = () => `
+  <p class="page-eyebrow">People</p>
+  <h1 class="page-title">Member Directory</h1>
+  <p class="page-lede">Assign work to strengths. Capture what each member brings and the projects they'd most like to own.</p>
+  ${dataTable('members',[
+    {key:'name',label:'Name',type:'text',width:'14%'},
+    {key:'role',label:'Role',type:'text',width:'16%'},
+    {key:'interests',label:'Interests',type:'area'},
+    {key:'expertise',label:'Expertise',type:'area'},
+    {key:'preferred',label:'Preferred projects',type:'area'},
+    {key:'contact',label:'Contact',type:'text',width:'12%'},
+    {key:'avail',label:'Availability',type:'text',width:'12%'}
+  ])}
+`;
+
+VIEWS.resources = () => `
+  <p class="page-eyebrow">Knowledge</p>
+  <h1 class="page-title">Resource Library</h1>
+  <p class="page-lede">A growing shelf of references the committee builds on — NASW resources, toolkits, research, legislative updates, and campaign materials.</p>
+  ${dataTable('resources',[
+    {key:'title',label:'Title',type:'area',width:'34%'},
+    {key:'type',label:'Type',type:'text',width:'16%'},
+    {key:'link',label:'Link',type:'text',width:'22%'},
+    {key:'notes',label:'Notes',type:'area'}
+  ])}
+`;
+
+VIEWS.risks = () => {
+  const risks = state.risks.filter(r=>r.type==='Risk');
+  const opps = state.risks.filter(r=>r.type==='Opportunity');
+  return `
+  <p class="page-eyebrow">Foresight</p>
+  <h1 class="page-title">Risk &amp; Opportunity Log</h1>
+  <p class="page-lede">High-functioning committees look ahead. Track what could derail the work — and what could accelerate it.</p>
+  ${dataTable('risks',[
+    {key:'type',label:'Type',type:'select',options:['Risk','Opportunity'],width:'110px'},
+    {key:'item',label:'Item',type:'area'},
+    {key:'level',label:'Level',type:'select',options:['High','Medium','Low'],width:'95px'},
+    {key:'owner',label:'Owner',type:'text',width:'100px'},
+    {key:'plan',label:'Plan / response',type:'area'},
+    {key:'status',label:'Status',type:'select',options:['Open','Monitoring','Mitigated','Closed'],width:'115px'}
+  ])}
+  <div class="callout">${risks.length} risk${risks.length!==1?'s':''} &amp; ${opps.length} opportunit${opps.length!==1?'ies':'y'} tracked. Review this list at each quarterly planning session.</div>
+`;
+};
+
+VIEWS.questions = () => `
+  <p class="page-eyebrow">Governance</p>
+  <h1 class="page-title">Questions for Joel &amp; LaTasha</h1>
+  <p class="page-lede">Open questions for the Board's Executive Director and President. Check each off as it's answered, and capture the answer in place.</p>
+  <div class="card">
+  ${state.questions.map((q,i)=>`
+    <div style="padding:13px 0;border-top:${i?'1px solid var(--line)':'none'}">
+      <div class="checkrow" style="padding:0;border:none">
+        <input type="checkbox" ${q.done?'checked':''} onchange="state.questions[${i}].done=this.checked;save();renderNav()">
+        <span class="ctxt" style="font-weight:600;font-size:14.5px" contenteditable="true" oninput="state.questions[${i}].q=this.innerText;save()">${esc(q.q)}</span>
+        <button class="row-x" onclick="state.questions.splice(${i},1);save();go('questions')">×</button>
+      </div>
+      <div style="margin-left:27px;margin-top:5px"><span class="field-label" style="margin:0">Answer</span>
+        <div class="prose editable-block" contenteditable="true" oninput="state.questions[${i}].answer=this.innerText;save()" style="min-height:24px;color:${q.answer?'var(--ink)':'var(--faint)'}">${esc(q.answer)||'…'}</div></div>
+    </div>`).join("")}
+  <button class="add-line" onclick="state.questions.push({q:'New question',answer:'',done:false});save();go('questions')">+ Add question</button>
+  </div>
+`;
+
+VIEWS.transition = () => `
+  <p class="page-eyebrow">Continuity</p>
+  <h1 class="page-title">Leadership Transition Guide</h1>
+  <p class="page-lede">${ce('transition.intro')}</p>
+  <div class="twocol">
+    <div class="card"><div class="card-head"><h3>Core responsibilities</h3></div>${edList('transition.responsibilities')}</div>
+    <div class="card"><div class="card-head"><h3>Annual timeline</h3></div>${edList('transition.timeline')}</div>
+  </div>
+  <div class="twocol">
+    <div class="card"><div class="card-head"><h3>Lessons learned</h3></div>${edList('transition.lessons')}</div>
+    <div class="card"><div class="card-head"><h3>Key contacts</h3></div>${edList('transition.contacts')}</div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>New co-chair orientation checklist</h3></div>
+    ${state.transition.orientation.map((o,i)=>`
+      <div class="checkrow">
+        <input type="checkbox" ${o.on?'checked':''} onchange="state.transition.orientation[${i}].on=this.checked;save()">
+        <span class="ctxt" contenteditable="true" oninput="state.transition.orientation[${i}].text=this.innerText;save()">${esc(o.text)}</span>
+        <button class="row-x" onclick="state.transition.orientation.splice(${i},1);save();go('transition')">×</button>
+      </div>`).join("")}
+    <button class="add-line" onclick="state.transition.orientation.push({text:'New step',on:false});save();go('transition')">+ Add step</button>
+  </div>
+`;
+
+VIEWS.draft = () => {
+  const first3 = state.actions.slice(0,3);
+  return `
+  <p class="page-eyebrow">End-of-Week Deliverable</p>
+  <h1 class="page-title">Draft to Share with Joel &amp; LaTasha</h1>
+  <p class="page-lede">A clean summary that pulls from the sections above. Edit the opening note, then use <b>Copy view</b> or <b>Print / PDF</b> to send it.</p>
+
+  <div class="card">
+    <div class="card-head"><h3>Opening note</h3></div>
+    ${ce('draftNote',{serif:true})}
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Proposed co-chair roles</h3></div>
+    ${state.roles.map(r=>`<p style="margin:6px 0"><b>${esc(r.role)}</b><br><span style="color:var(--muted)">${esc(r.primary)}</span></p>`).join("")}
+  </div>
+
+  <div class="twocol">
+    <div class="card"><div class="card-head"><h3>Proposed meeting cadence</h3></div><p class="prose">${esc(state.meetingTemplate.cadence)}</p></div>
+    <div class="card"><div class="card-head"><h3>Proposed committee pillars</h3></div>
+      <ul class="ed-list">${state.pillars.map(p=>`<li><span class="bullet" style="color:${p.color}">●</span><span class="txt"><b>${esc(p.name)}</b> — ${esc(p.purpose)}</span></li>`).join("")}</ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>First three action steps</h3></div>
+    <ol style="margin:6px 0 0;padding-left:20px">${first3.map(a=>`<li style="margin:6px 0"><b>${esc(a.task)}</b> — ${esc(a.owner||'Unassigned')}${a.due?` · due ${fmtDate(a.due)}`:''}</li>`).join("")||'<span class="empty">Add action items in the tracker.</span>'}</ol>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Our open questions for you</h3></div>
+    <ul class="ed-list">${state.questions.filter(q=>!q.done).map(q=>`<li><span class="bullet">?</span><span class="txt">${esc(q.q)}</span></li>`).join("")||'<span class="empty">No open questions.</span>'}</ul>
+  </div>
+`;
+};
+
+/* ============================================================
+   ARCHIVE today's meeting into history
+   ============================================================ */
+function archiveMeeting(){
+  const tm = state.todayMeeting;
+  const snap = {
+    date: tm.date,
+    attendees: tm.attendees,
+    notes: tm.notes,
+    decisions: state.decisions.filter(d=>d.date===tm.date).map(d=>({decision:d.decision})),
+    actions: state.actions.slice(0,8).map(a=>({task:a.task,owner:a.owner,due:a.due}))
+  };
+  state.meetings.push(snap);
+  save();
+  go('history');
+}
+
+/* ============================================================
+   EXPORT / IMPORT / PRINT / COPY
+   ============================================================ */
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`DEIAB-committee-${TODAY}.json`;
+  a.click();
+}
+function importJSON(e){
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ state=JSON.parse(r.result); save(); go(activeView); alert('Restored from backup.'); }catch(err){ alert('That file could not be read as a valid backup.'); } };
+  r.readAsText(f);
+  e.target.value='';
+}
+function doPrint(){ window.print(); }
+
+function openCopy(){
+  document.getElementById('copyText').value = plainTextFor(activeView);
+  document.getElementById('copyModal').showModal();
+}
+function copyToClipboard(){
+  const t=document.getElementById('copyText');
+  t.select();
+  navigator.clipboard?.writeText(t.value).then(()=>{
+    const b=event.target; const o=b.textContent; b.textContent='Copied ✓'; setTimeout(()=>b.textContent=o,1400);
+  }).catch(()=>{ document.execCommand('copy'); });
+}
+
+/* flatten a view to clean plain text for pasting elsewhere */
+function plainTextFor(v){
+  const L=[]; const h=s=>L.push('\n'+s.toUpperCase()+'\n'+'─'.repeat(s.length));
+  const c=s=>state.charter[s];
+  switch(v){
+    case 'charter':
+      h('Committee Charter');
+      L.push('\nMission\n'+c('mission'));
+      L.push('\nVision\n'+c('vision'));
+      L.push('\nScope\n'+c('scope'));
+      L.push('\nGuiding principles'); c('principles').forEach(p=>L.push('• '+p));
+      L.push('\nCommittee authority\n'+c('authority'));
+      L.push('\nRelationship to the Board\n'+c('board'));
+      L.push('\nAnnual objectives'); c('objectives').forEach(o=>L.push('• '+o));
+      break;
+    case 'roles':
+      h('Co-Chair Roles');
+      state.roles.forEach(r=>{L.push('\n'+r.role);L.push('  Primary: '+r.primary);L.push('  Backup: '+r.backup);if(r.notes)L.push('  Notes: '+r.notes);});
+      break;
+    case 'structure':
+      h('Meeting Structure');
+      L.push('\nCadence: '+state.meetingTemplate.cadence);
+      L.push('\nStandard agenda'); state.meetingTemplate.agenda.forEach(a=>L.push('• '+a));
+      L.push('\nCheck-in questions'); state.meetingTemplate.checkins.forEach(a=>L.push('• '+a));
+      L.push('\nDecision-making\n'+state.meetingTemplate.decision);
+      break;
+    case 'actions':
+      h('Action Item Tracker');
+      state.actions.forEach(a=>L.push(`• ${a.task} — ${a.owner||'Unassigned'} | due ${a.due?fmtDate(a.due):'—'} | ${a.priority||'—'} | ${a.status||'—'}`));
+      break;
+    case 'decisions':
+      h('Decision Log');
+      state.decisions.forEach(d=>L.push(`• [${fmtDate(d.date)}] ${d.decision}${d.context?' — '+d.context:''}`));
+      break;
+    case 'questions':
+      h('Questions for Joel & LaTasha');
+      state.questions.forEach(q=>L.push(`• ${q.q}${q.answer?'\n    → '+q.answer:''}`));
+      break;
+    case 'campaign':
+      h('Courageous Care, Collective Power');
+      L.push('\nPurpose\n'+state.campaign.purpose);
+      L.push('\nHow the committee supports it'); state.campaign.support.forEach(s=>L.push('• '+s));
+      L.push('\nMonthly content ideas'); state.campaign.content.forEach(s=>L.push('• '+s));
+      L.push('\nMember engagement ideas'); state.campaign.engagement.forEach(s=>L.push('• '+s));
+      break;
+    case 'draft':
+      h('Draft to Share with Joel & LaTasha');
+      L.push('\n'+state.draftNote);
+      L.push('\nProposed co-chair roles'); state.roles.forEach(r=>L.push('• '+r.role+' — '+r.primary));
+      L.push('\nProposed meeting cadence\n'+state.meetingTemplate.cadence);
+      L.push('\nProposed committee pillars'); state.pillars.forEach(p=>L.push('• '+p.name+' — '+p.purpose));
+      L.push('\nFirst three action steps'); state.actions.slice(0,3).forEach((a,i)=>L.push(`${i+1}. ${a.task} — ${a.owner||'Unassigned'}${a.due?' (due '+fmtDate(a.due)+')':''}`));
+      L.push('\nOur open questions'); state.questions.filter(q=>!q.done).forEach(q=>L.push('• '+q.q));
+      break;
+    case 'initiatives':
+      h('Initiative Portfolio');
+      state.initiatives.forEach(i=>L.push(`• ${i.name} [${pillarName(i.pillar)}] — phase: ${i.phase} | priority: ${i.priority} | status: ${i.status}`));
+      break;
+    case 'goals':
+      h('Annual Goals'); state.goals.forEach(g=>L.push(`• ${g.goal}: ${g.current}/${g.target} ${g.metric} — ${g.status}`)); break;
+    case 'pillars':
+      h('Project Pillars'); state.pillars.forEach(p=>L.push(`\n${p.name} (${p.status})\n  Purpose: ${p.purpose}\n  Projects: ${p.projects}\n  Owner: ${p.owner||'—'}\n  Next: ${p.next}`)); break;
+    default:
+      L.push('Use Copy view on the Charter, Roles, Meeting Structure, Actions, Decisions, Campaign, Questions, or Draft sections for formatted text.');
+  }
+  return L.join('\n').trim();
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+renderNav();
+go('dashboard');
+save();
+</script>
+</body>
+</html>
